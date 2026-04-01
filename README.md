@@ -93,6 +93,57 @@ rabbit, mushroom, chonk
 | Epic | 4 | 4% | ★★★★ |
 | Legendary | 1 | 1% | ★★★★★ |
 
+### Cosmetics: Eyes, Hats, and Shiny
+
+Beyond rarity and species, each buddy also has an **eye style**, **hat**, and **shiny** status — all deterministic from the same identity hash.
+
+**Eyes** (6 styles, uniform random):
+
+| Eye | Look | On a cat |
+|-----|------|----------|
+| `·` | Dot | `( ·   ·)` |
+| `✦` | Star | `( ✦   ✦)` |
+| `×` | Cross | `( ×   ×)` |
+| `◉` | Bullseye | `( ◉   ◉)` |
+| `@` | At sign | `( @   @)` |
+| `°` | Circle | `( °   °)` |
+
+**Hats** (8 styles — common rarity always gets "none"):
+
+| Hat | ASCII | Notes |
+|-----|-------|-------|
+| `none` | (blank) | All commons get this |
+| `crown` | `\^^^/` | |
+| `tophat` | `[___]` | |
+| `propeller` | `-+-` | |
+| `halo` | `(   )` | |
+| `wizard` | `/^\` | |
+| `beanie` | `(___)` | |
+| `tinyduck` | `,>` | A tiny duck sitting on its head |
+
+**Shiny:** 1% chance. Rolled after hat. Also deterministic from identity — you can't fake it by editing config.
+
+### Picking Your Exact Look
+
+The `reroll.js` script finds the best rarity, but if you also care about eyes, hat, and shiny, you need a deeper search. Use the included `shiny_hunt.js` (or run `verify.js` on each candidate) to find IDs that match your exact cosmetic preferences.
+
+Example: finding a **Shiny Legendary Cat with star eyes and propeller hat**:
+
+```bash
+# This searches 20M IDs — takes a few minutes
+node shiny_hunt.js cat 20000000
+```
+
+The script outputs every legendary cat it finds with full cosmetic details, grouped by eye/hat/shiny at the end. Pick the combination you want and apply the ID.
+
+The probability of hitting a specific combination:
+- Legendary + specific species: ~0.056% (1% × 1/18)
+- \+ specific eye: ~0.0093% (÷6)
+- \+ specific hat: ~0.0012% (÷8)
+- \+ shiny: ~0.000012% — about **1 in 8.6 million**
+
+At 20M attempts you'll typically find a few of each shiny combination.
+
 ---
 
 ### Deep Dive: How the Buddy Actually Behaves
@@ -361,6 +412,7 @@ Then restart Claude Code and `/buddy` again. Your `userID` persists across re-lo
 | File | Purpose |
 |------|---------|
 | [`reroll.js`](reroll.js) | Brute-force search for a target species + rarity |
+| [`shiny_hunt.js`](shiny_hunt.js) | Deep search with full cosmetics — eye, hat, shiny, stats |
 | [`verify.js`](verify.js) | Check what buddy any ID produces, or auto-read config |
 | [`fix.sh`](fix.sh) | One-command recovery after a forced re-login |
 
