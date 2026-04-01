@@ -547,7 +547,7 @@ You can write any personality you want. Keep it under **200 characters** — the
 | Field | Editable? | Effect | Needs restart? |
 |-------|-----------|--------|----------------|
 | `personality` | Yes | Changes how buddy talks | **No** — read live |
-| `name` | Yes | Changes display name | Yes |
+| `name` | Yes | Changes display name | **No** — read live |
 | `rarity` | No | Regenerated from identity hash | N/A |
 | `species` | No | Regenerated from identity hash | N/A |
 | `eye`, `hat`, `shiny` | No | Regenerated from identity hash | N/A |
