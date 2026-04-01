@@ -4,7 +4,11 @@
 
 Unhappy with your Claude Code companion? This guide explains exactly how the buddy system works under the hood and how to reroll for the species + rarity you actually want.
 
-> **Tip:** You can copy this entire README and paste it into your Claude Code session. Claude will read it, explain how it works, and walk you through the steps.
+> **Tip:** Clone this repo, then copy this entire README and paste it into your Claude Code session. Claude will read it, explain how it works, and do everything for you.
+> ```bash
+> git clone https://github.com/ithiria894/claude-code-buddy-reroll.git
+> cd claude-code-buddy-reroll
+> ```
 
 > Tested on Claude Code v2.1.89, April 2026. The buddy system was introduced as part of the `/buddy` command.
 
