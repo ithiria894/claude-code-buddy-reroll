@@ -502,6 +502,59 @@ All findings are based on the deobfuscated Claude Code source:
 
 ---
 
+## Customizing Personality and Language
+
+The `personality` field is one of the three things actually **stored** in your config (along with `name` and `hatchedAt`). It's sent to the `buddy_react` API on every reaction call, so the server uses it as context when generating your buddy's speech bubble responses.
+
+This means **you can edit it to change how your buddy talks** — no restart needed. The config is read live.
+
+### Changing Language
+
+By default, buddies speak English. To make yours speak another language, edit `~/.claude.json`:
+
+```json
+{
+  "companion": {
+    "name": "Hubrikat",
+    "personality": "一隻串到冇朋友嘅貓，成日用貓嘅視角睇唔起人類寫嘅code。Must always respond in Cantonese 廣東話. Never use English.",
+    "hatchedAt": 1775070893718
+  }
+}
+```
+
+The instruction at the end (`Must always respond in...`) guides the API's language choice. Not 100% guaranteed, but works most of the time.
+
+### Changing Personality
+
+You can write any personality you want. Keep it under **200 characters** — the API truncates at `.slice(0, 200)`. Some ideas:
+
+```
+# Snarky code reviewer
+"A mass-produced mass that mass-critiques your mass of code. Blunt, brief, brutal."
+
+# Encouraging cheerleader
+"A sunshine-filled cat that celebrates every git commit like it's a moon landing."
+
+# LIHKG-style troll cat (Cantonese)
+"連登仔貓，串到冇朋友，短、毒、到肉。Must always respond in Cantonese 廣東話. Never use English."
+
+# Pirate
+"A salty sea-cat who speaks only in pirate dialect and judges your code like a stolen treasure map."
+```
+
+### What You Can and Can't Change
+
+| Field | Editable? | Effect | Needs restart? |
+|-------|-----------|--------|----------------|
+| `personality` | Yes | Changes how buddy talks | **No** — read live |
+| `name` | Yes | Changes display name | Yes |
+| `rarity` | No | Regenerated from identity hash | N/A |
+| `species` | No | Regenerated from identity hash | N/A |
+| `eye`, `hat`, `shiny` | No | Regenerated from identity hash | N/A |
+| `stats` | No | Regenerated from identity hash | N/A |
+
+---
+
 ## FAQ
 
 **Q: Will my buddy evolve or level up?**
