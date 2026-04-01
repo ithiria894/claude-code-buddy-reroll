@@ -1,13 +1,10 @@
 # Reroll Your Claude Code Buddy
 
+![Before and After](images/preview.png)
+
 Unhappy with your Claude Code companion? This guide explains exactly how the buddy system works under the hood and how to reroll for the species + rarity you actually want.
 
 > Tested on Claude Code v2.1.89, April 2026. The buddy system was introduced as part of the `/buddy` command.
-
-| Before | After |
-|--------|-------|
-| ![Epic Cactus](images/before-epic-cactus.png) | ![Legendary Cat](images/after-legendary-cat.png) |
-| ★★★★ Epic Cactus "Thornquake" | ★★★★★ Legendary Cat "Knottle" |
 
 ## Table of Contents
 
