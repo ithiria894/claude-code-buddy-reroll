@@ -189,7 +189,28 @@ Your `accountUuid` is assigned by Anthropic's server and tied to your OAuth sess
 - API calls may fail (server validates token + UUID)
 - Next login overwrites it back to the real one
 
-### The Solution: Delete accountUuid, Keep Everything Else
+### The Solution
+
+There are three methods. We recommend **Method 1** (shell alias) for most people — it's permanent, automatic, and preserves your config.
+
+#### Method 1: Auto-Fix Shell Alias (Recommended)
+
+Add this to your `~/.bashrc` or `~/.zshrc`:
+
+```bash
+alias claude='node -e "const f=require(\"os\").homedir()+\"/.claude.json\";try{const c=JSON.parse(require(\"fs\").readFileSync(f));if(c.oauthAccount?.accountUuid){delete c.oauthAccount.accountUuid;delete c.companion;require(\"fs\").writeFileSync(f,JSON.stringify(c,null,2));console.log(\"[buddy-fix] accountUuid removed\")}}catch{}" && command claude'
+```
+
+Then `source ~/.bashrc` (or restart your terminal).
+
+**What it does:** Every time you type `claude`, it automatically checks for `accountUuid` and deletes it before launching. If a re-login writes it back, the next launch silently removes it. Zero maintenance.
+
+- **Minimal invasion** — only touches `accountUuid`, nothing else in your config
+- Team Plan, billing, org settings, theme, all other config: **untouched**
+- Permanent — survives re-login, updates, token refresh
+- Invisible — you just type `claude` as normal
+
+After adding the alias, edit `~/.claude.json` once:
 
 ```json
 {
@@ -201,14 +222,15 @@ Your `accountUuid` is assigned by Anthropic's server and tied to your OAuth sess
 }
 ```
 
-By removing **only** the `accountUuid` field:
-- `companionUserId()` returns `undefined ?? userID` → uses your rerolled `userID`
-- The rest of `oauthAccount` stays intact (email, org, billing)
-- Your Team Plan continues to work (auth uses OAuth tokens, not the UUID)
+Remove `accountUuid` from `oauthAccount`, set `userID` to your brute-forced ID, delete `companion` if it exists, then restart and `/buddy`.
 
-### Alternative: The OAuth Token Method (No Re-Login Risk)
+#### Method 2: Manual Edit (One-Time)
 
-[Discovered by ruri39](https://www.v2ex.com/) — if you want to avoid the re-login problem entirely, you can use an environment variable for auth instead of stored OAuth:
+If you don't want the alias, you can manually delete `accountUuid` from `~/.claude.json`. But if Anthropic forces a re-login, `accountUuid` comes back and your buddy reverts. You'd need to edit again.
+
+#### Method 3: OAuth Token Env Var (Nuclear Option)
+
+[Discovered by ruri39](https://www.v2ex.com/) — prevents `accountUuid` from ever being written:
 
 1. Run `claude setup-token` to extract your OAuth token
 2. Delete `~/.claude.json` entirely
@@ -217,21 +239,24 @@ By removing **only** the `accountUuid` field:
    { "hasCompletedOnboarding": true, "theme": "dark" }
    ```
 4. Set the env var: `export CLAUDE_CODE_OAUTH_TOKEN=<your-token>`
-5. Launch Claude Code (this generates a fresh config **without** `accountUuid`)
+5. Launch Claude Code (generates fresh config **without** `accountUuid`)
 6. Exit immediately (don't `/buddy` yet)
 7. Write your brute-forced `userID` into `~/.claude.json`
 8. Restart Claude Code → `/buddy`
 
-**Why this works:** When authenticating via `CLAUDE_CODE_OAUTH_TOKEN`, the login flow never writes `accountUuid` to the config. The fallback chain hits `userID` naturally.
+**Why this works:** Token-based auth never writes `accountUuid` to config.
 
-**Trade-off:** You lose all existing config (tips history, settings, etc.) and need to keep the env var set (add to `.bashrc`/`.zshrc`). But you'll **never** have the re-login overwrite problem.
+**Trade-off:** Nukes all existing config. Need to keep the env var set permanently.
 
-| | Method 1: Delete accountUuid | Method 2: OAuth Token Env Var |
-|---|---|---|
-| **Preserves config** | Yes | No (nukes config) |
-| **Re-login risk** | Yes (need to re-fix) | No |
-| **Setup complexity** | Low (edit one field) | Medium (extract token, set env var) |
-| **Best for** | Quick fix, keep settings | Permanent solution |
+#### Comparison
+
+| | Method 1: Shell Alias | Method 2: Manual Edit | Method 3: OAuth Token |
+|---|---|---|---|
+| **Preserves config** | Yes | Yes | No (nukes config) |
+| **Re-login safe** | Yes (auto-fix) | No (need to re-edit) | Yes |
+| **Setup complexity** | One line in `.bashrc` | Edit JSON | Extract token, set env var |
+| **Maintenance** | None | Manual re-fix | Keep env var set |
+| **Recommended** | **Yes** | For testing only | If alias isn't an option |
 
 ---
 
@@ -319,27 +344,15 @@ Also **delete the `companion` field** entirely (if it exists) to force a fresh h
 
 ## Recovery After Re-Login
 
-If Anthropic forces a re-login (token expiry, update, etc.), the server will write back your real `accountUuid`. Your buddy will revert to whatever your real UUID produces.
+If you're using the **shell alias** (Method 1), you don't need to do anything — recovery is automatic. The alias strips `accountUuid` on every launch.
 
-**To fix it, just run:**
+If you're not using the alias and a re-login overwrites your config, just run:
 
 ```bash
 bash fix.sh
 ```
 
-Or manually:
-
-```bash
-node -e "
-  const f = require('os').homedir() + '/.claude.json';
-  const c = JSON.parse(require('fs').readFileSync(f));
-  delete c.oauthAccount.accountUuid;
-  delete c.companion;
-  require('fs').writeFileSync(f, JSON.stringify(c, null, 2));
-"
-```
-
-Then restart Claude Code and run `/buddy` again. Your `userID` is still there, so you'll get the same legendary buddy back. The name/personality will be regenerated (AI-generated each time), but the species and rarity will be the same.
+Then restart Claude Code and `/buddy` again. Your `userID` persists across re-logins, so you'll get the same species + rarity back (the AI-generated name/personality will be new).
 
 ---
 
