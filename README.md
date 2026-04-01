@@ -95,6 +95,48 @@ rabbit, mushroom, chonk
 
 ---
 
+### Deep Dive: How the Buddy Actually Behaves
+
+Beyond the generation algorithm, here's what the companion actually does at runtime:
+
+**The companion watches your coding sessions.** After every Claude response, `fireCompanionObserver` sends your recent transcript (up to 5000 chars) to an API endpoint:
+
+```
+POST /api/organizations/{orgId}/claude_code/buddy_react
+Body: { name, personality, species, rarity, stats, transcript, reason, recent, addressed }
+```
+
+The server returns a short quip that appears in the companion's speech bubble. This is a separate API call from Claude — your buddy is not Claude, it's a different system.
+
+**Stats influence personality generation.** At hatch time, the `inspirationSeed` and stats (e.g. `CHAOS:100 DEBUGGING:80`) are sent to an AI model that generates the name and personality text. High CHAOS stats tend to produce chaotic personalities.
+
+**Animation system:**
+- Each species has **3 animation frames** (rest, fidget, special effect)
+- Tick rate: **500ms**
+- Idle loop: `[0,0,0,0,1,0,0,0,-1,0,0,2,0,0,0]` where `-1` = blink
+- When reacting or being petted: cycles through all frames rapidly
+
+**Speech bubble:**
+- Appears for **~10 seconds** (20 ticks)
+- Last **~3 seconds** fades out (dim text)
+- `/buddy pet` triggers **2.5 seconds** of floating hearts
+
+**Addressing by name:** The companion intro is injected into Claude's system prompt:
+
+> *"When the user addresses {name} directly (by name), its bubble will answer. Your job in that moment is to stay out of the way."*
+
+So when you type "Knottle what do you think?", Claude steps back and the buddy's bubble answers via the reaction API.
+
+**Hats:** Only non-common rarities get hats. Options: `crown`, `tophat`, `propeller`, `halo`, `wizard`, `beanie`, `tinyduck` (a tiny duck sitting on its head).
+
+**Feature flag:** The entire system is gated behind `feature('BUDDY')`. Anthropic can disable it server-side at any time.
+
+**April Fools origin:** The rainbow `/buddy` teaser notification only appears during **April 1-7, 2026**. The salt `friend-2026-401` confirms the April 1 launch date. After the teaser window, the command stays live but the startup notification disappears.
+
+**Narrow terminals:** If your terminal is under 100 columns, the sprite collapses to a one-line face like `=·ω·=` (cat) or `<·~·>` (dragon).
+
+---
+
 ## Quick Start
 
 **Free users** (no OAuth account):
@@ -163,6 +205,33 @@ By removing **only** the `accountUuid` field:
 - `companionUserId()` returns `undefined ?? userID` → uses your rerolled `userID`
 - The rest of `oauthAccount` stays intact (email, org, billing)
 - Your Team Plan continues to work (auth uses OAuth tokens, not the UUID)
+
+### Alternative: The OAuth Token Method (No Re-Login Risk)
+
+[Discovered by ruri39](https://www.v2ex.com/) — if you want to avoid the re-login problem entirely, you can use an environment variable for auth instead of stored OAuth:
+
+1. Run `claude setup-token` to extract your OAuth token
+2. Delete `~/.claude.json` entirely
+3. Create a minimal `~/.claude.json`:
+   ```json
+   { "hasCompletedOnboarding": true, "theme": "dark" }
+   ```
+4. Set the env var: `export CLAUDE_CODE_OAUTH_TOKEN=<your-token>`
+5. Launch Claude Code (this generates a fresh config **without** `accountUuid`)
+6. Exit immediately (don't `/buddy` yet)
+7. Write your brute-forced `userID` into `~/.claude.json`
+8. Restart Claude Code → `/buddy`
+
+**Why this works:** When authenticating via `CLAUDE_CODE_OAUTH_TOKEN`, the login flow never writes `accountUuid` to the config. The fallback chain hits `userID` naturally.
+
+**Trade-off:** You lose all existing config (tips history, settings, etc.) and need to keep the env var set (add to `.bashrc`/`.zshrc`). But you'll **never** have the re-login overwrite problem.
+
+| | Method 1: Delete accountUuid | Method 2: OAuth Token Env Var |
+|---|---|---|
+| **Preserves config** | Yes | No (nukes config) |
+| **Re-login risk** | Yes (need to re-fix) | No |
+| **Setup complexity** | Low (edit one field) | Medium (extract token, set env var) |
+| **Best for** | Quick fix, keep settings | Permanent solution |
 
 ---
 
