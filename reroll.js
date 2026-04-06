@@ -47,6 +47,9 @@ function mulberry32(seed) {
 // ─── Hash: FNV-1a (same as Claude Code on Node) ─────────────────────────────
 
 function hashString(s) {
+  if (typeof Bun !== "undefined") {
+    return Number(Bun.hash(s) & 0xFFFFFFFFn);
+  }
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
