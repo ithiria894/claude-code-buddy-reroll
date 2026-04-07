@@ -42,7 +42,14 @@ function mulberry32(seed) {
   };
 }
 
+// Claude Code uses Bun.hash (wyhash) when running on Bun, with FNV-1a as a
+// fallback. Since the Claude Code binary ships as a Bun executable, Bun.hash
+// is what's actually used. Run with `bun run` for correct results.
 function hashString(s) {
+  if (typeof Bun !== "undefined") {
+    return Number(BigInt(Bun.hash(s)) & 0xffffffffn);
+  }
+  // FNV-1a fallback (only matches Claude Code on non-Bun runtimes)
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
@@ -91,6 +98,12 @@ function fullRoll(id) {
 }
 
 // ─── Resolve ID ──────────────────────────────────────────────────────────────
+
+if (typeof Bun === "undefined") {
+  console.warn("⚠️  WARNING: Running with Node.js. Claude Code uses Bun.hash (wyhash),");
+  console.warn("   so results from Node's FNV-1a fallback will NOT match your actual buddy.");
+  console.warn("   Install Bun (https://bun.sh) and run: bun run verify.js\n");
+}
 
 let id = process.argv[2];
 

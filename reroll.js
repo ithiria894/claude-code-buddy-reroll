@@ -44,9 +44,18 @@ function mulberry32(seed) {
   };
 }
 
-// ─── Hash: FNV-1a (same as Claude Code on Node) ─────────────────────────────
+// ─── Hash: matches Claude Code's actual implementation ──────────────────────
+//
+// Claude Code uses Bun.hash (wyhash) when running on Bun, with FNV-1a as a
+// fallback for non-Bun environments. Since the Claude Code binary ships as a
+// Bun executable, Bun.hash is what's actually used in practice. Running this
+// tool with Node will produce WRONG results — use `bun run` instead.
 
 function hashString(s) {
+  if (typeof Bun !== "undefined") {
+    return Number(BigInt(Bun.hash(s)) & 0xffffffffn);
+  }
+  // FNV-1a fallback (only matches Claude Code on non-Bun runtimes)
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
@@ -93,6 +102,12 @@ function randomUUID() {
   bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant 1
   const hex = bytes.toString("hex");
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+if (typeof Bun === "undefined") {
+  console.warn("⚠️  WARNING: Running with Node.js. Claude Code uses Bun.hash (wyhash),");
+  console.warn("   so results from Node's FNV-1a fallback will NOT match your actual buddy.");
+  console.warn("   Install Bun (https://bun.sh) and run: bun run reroll.js\n");
 }
 
 console.log(`Searching for legendary ${target} (mode: ${mode}, max: ${max.toLocaleString()})...\n`);

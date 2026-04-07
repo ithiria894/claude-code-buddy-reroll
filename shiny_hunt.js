@@ -38,7 +38,14 @@ function prng(seed) {
   };
 }
 
+// Claude Code uses Bun.hash (wyhash) when running on Bun, with FNV-1a as a
+// fallback. Since the Claude Code binary ships as a Bun executable, Bun.hash
+// is what's actually used. Run with `bun run` for correct results.
 function hash(s) {
+  if (typeof Bun !== "undefined") {
+    return Number(BigInt(Bun.hash(s)) & 0xffffffffn);
+  }
+  // FNV-1a fallback (only matches Claude Code on non-Bun runtimes)
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
@@ -78,6 +85,12 @@ if (!SPECIES.includes(target)) {
   console.error(`Unknown species: ${target}`);
   console.error(`Valid: ${SPECIES.join(", ")}`);
   process.exit(1);
+}
+
+if (typeof Bun === "undefined") {
+  console.warn("⚠️  WARNING: Running with Node.js. Claude Code uses Bun.hash (wyhash),");
+  console.warn("   so results from Node's FNV-1a fallback will NOT match your actual buddy.");
+  console.warn("   Install Bun (https://bun.sh) and run: bun run shiny_hunt.js\n");
 }
 
 console.log(`Hunting legendary ${target} with full cosmetics (${max.toLocaleString()} attempts)...\n`);
