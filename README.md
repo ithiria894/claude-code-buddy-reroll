@@ -32,7 +32,7 @@ Your buddy is **not random**. It's deterministically generated from your user id
 ### The Algorithm
 
 ```
-identity + "friend-2026-401"  →  FNV-1a hash  →  Mulberry32 PRNG seed
+identity + "friend-2026-401"  →  hash function  →  Mulberry32 PRNG seed
                                                         │
                                               ┌─────────┼─────────────┐
                                               ▼         ▼             ▼
@@ -45,7 +45,17 @@ identity + "friend-2026-401"  →  FNV-1a hash  →  Mulberry32 PRNG seed
    ```
    If you're logged in with OAuth, `accountUuid` takes priority. `userID` is only used as a fallback.
 
-2. **Hashing**: The identity string + salt `"friend-2026-401"` is hashed with FNV-1a (32-bit).
+2. **Hashing**: The identity string + salt `"friend-2026-401"` is hashed to a 32-bit seed.
+
+   > **Important: Bun.hash vs FNV-1a.** Claude Code's actual source contains two code paths:
+   > ```javascript
+   > if (typeof Bun !== "undefined")
+   >   return Number(BigInt(Bun.hash(s)) & 0xffffffffn);  // wyhash
+   > // else FNV-1a fallback
+   > ```
+   > Since Claude Code ships as a **Bun executable**, `Bun.hash` (wyhash) is what's actually used.
+   > **You must run the tools in this repo with `bun run` — not `node` — to get correct results.**
+   > Using `node` will produce IDs that generate completely different buddies than expected.
 
 3. **PRNG**: The hash seeds a Mulberry32 generator, which produces deterministic random numbers.
 
@@ -137,7 +147,7 @@ Example: finding a **Shiny Legendary Cat with star eyes and propeller hat**:
 
 ```bash
 # This searches 20M IDs — takes a few minutes
-node shiny_hunt.js cat 20000000
+bun run shiny_hunt.js cat 20000000
 ```
 
 The script outputs every legendary cat it finds with full cosmetic details, grouped by eye/hat/shiny at the end. Pick the combination you want and apply the ID.
@@ -196,11 +206,14 @@ So when you type "Knottle what do you think?", Claude steps back and the buddy's
 
 ## Quick Start
 
+> **Prerequisite:** Install [Bun](https://bun.sh) (`curl -fsSL https://bun.sh/install | bash`).
+> Claude Code uses `Bun.hash` (wyhash) internally — running these tools with `node` uses a different hash function and **will produce wrong results**.
+
 **Free users** (no OAuth account):
 
 ```bash
 # 1. Find a legendary cat
-node reroll.js cat
+bun run reroll.js cat
 
 # 2. Copy the ID and set it
 # Edit ~/.claude.json → set "userID" to the output ID
@@ -322,7 +335,7 @@ If you don't want the alias, you can manually delete `accountUuid` from `~/.clau
 ### Step 1: Check Your Current Buddy
 
 ```bash
-node verify.js auto
+bun run verify.js auto
 ```
 
 This reads your `~/.claude.json` and shows:
@@ -334,14 +347,14 @@ This reads your `~/.claude.json` and shows:
 
 ```bash
 # Find a legendary cat (default: 500k attempts)
-node reroll.js cat
+bun run reroll.js cat
 
 # Find a legendary dragon (more attempts for safety)
-node reroll.js dragon 2000000
+bun run reroll.js dragon 2000000
 
 # Find any legendary (try all species)
 for s in duck goose blob cat dragon octopus owl penguin turtle snail ghost axolotl capybara cactus robot rabbit mushroom chonk; do
-  node reroll.js $s 100000 &
+  bun run reroll.js $s 100000 &
 done
 wait
 ```
@@ -360,7 +373,7 @@ Best: legendary cat -> da55a6e264a84bb4ab5e68f09dd9f6b096f1394a758d1d3ad603f706c
 ### Step 3: Verify the ID
 
 ```bash
-node verify.js da55a6e264a84bb4ab5e68f09dd9f6b096f1394a758d1d3ad603f706cab71bcf
+bun run verify.js da55a6e264a84bb4ab5e68f09dd9f6b096f1394a758d1d3ad603f706cab71bcf
 ```
 
 ### Step 4: Apply the ID
@@ -501,6 +514,7 @@ All findings are based on the deobfuscated Claude Code source:
 
 - **Identity resolution**: `companionUserId()` in `buddy/companion.ts`
 - **Bone generation**: `roll()` → `rollFrom()` → `rollRarity()` + `pick(SPECIES)` in `buddy/companion.ts`
+- **Hash function**: `Bun.hash()` (wyhash) when running on Bun, FNV-1a fallback otherwise. Since Claude Code ships as a Bun binary, `Bun.hash` is what's actually used.
 - **What's stored**: `StoredCompanion = { name, personality, hatchedAt }` in `buddy/types.ts`
 - **What's regenerated**: `CompanionBones = { rarity, species, eye, hat, shiny, stats }` in `buddy/types.ts`
 - **Hatching**: `FRY()` writes only `{ name, personality, hatchedAt }` to config
@@ -575,8 +589,8 @@ A: The `userID` in your config persists across updates. However, if Anthropic ch
 **Q: Will `/buddy pet` do anything special?**
 A: It triggers an animation and a reaction from the buddy. No permanent effect.
 
-**Q: What if I run on Bun instead of Node?**
-A: Bun uses a different hash function (`Bun.hash()` instead of FNV-1a). The reroll scripts use the Node FNV-1a implementation. If Claude Code runs under Bun on your machine, the rolls may differ. Check with `node verify.js auto` after applying.
+**Q: Can I use Node instead of Bun?**
+A: No — results will be wrong. Claude Code ships as a Bun executable and uses `Bun.hash()` (wyhash) for hashing. The FNV-1a fallback in the tools only exists for environments where Bun is unavailable, but since Claude Code itself always uses Bun, you need Bun to get matching results. Install it with `curl -fsSL https://bun.sh/install | bash`.
 
 **Q: How rare is a shiny?**
 A: 1% chance, rolled after species and hat. Shiny status is also regenerated from identity (not stored), so you can't fake it.
